@@ -46,6 +46,12 @@ type Ovpn struct {
 	TlsAuth           string
 	Cert              string
 	Key               string
+	PullFilterAccept  []string
+	PullFilterIgnore  []string
+	PullFilterReject  []string
+	ScriptSecurity    int
+	ScriptUp          string
+	ScriptDown        string
 
 	DisableGateway bool
 }
@@ -133,6 +139,24 @@ func (o *Ovpn) Export() string {
 	}
 	if o.KeyDirection > 0 {
 		output += fmt.Sprintf("key-direction %d\n", o.KeyDirection)
+	}
+	for _, pfa := range o.PullFilterAccept {
+		output += fmt.Sprintf("pull-filter accept %s\n", pfa)
+	}
+	for _, pfi := range o.PullFilterIgnore {
+		output += fmt.Sprintf("pull-filter ignore %s\n", pfi)
+	}
+	for _, pfr := range o.PullFilterReject {
+		output += fmt.Sprintf("pull-filter reject %s\n", pfr)
+	}
+	if o.ScriptSecurity > 0 {
+		output += fmt.Sprintf("script-security %d\n", o.ScriptSecurity)
+	}
+	if o.ScriptUp != "" {
+		output += fmt.Sprintf("up %s\n", o.ScriptUp)
+	}
+	if o.ScriptDown != "" {
+		output += fmt.Sprintf("down %s\n", o.ScriptDown)
 	}
 
 	if o.DisableGateway {
@@ -664,6 +688,63 @@ func Import(data, fixedRemote, fixedRemote6 string, disableGateway bool) (
 			}
 
 			o.KeyDirection = keyDirection
+			break
+		case "pull-filter":
+			if len(lines) != 3 {
+				logrus.WithFields(logrus.Fields{
+					"line": line,
+				}).Warn("parser: Configuration line ignored [35]")
+				continue
+			}
+			switch strings.ToLower(lines[1]) {
+			case "accept":
+				o.PullFilterAccept = append(o.PullFilterAccept, lines[2])
+				break
+			case "ignore":
+				o.PullFilterIgnore = append(o.PullFilterIgnore, lines[2])
+				break
+			case "reject":
+				o.PullFilterReject = append(o.PullFilterReject, lines[2])
+				break
+			}
+			break
+		case "script-security":
+			if len(lines) != 2 {
+				logrus.WithFields(logrus.Fields{
+					"line": line,
+				}).Warn("parser: Configuration line ignored [36]")
+				continue
+			}
+
+			scriptSecurity, e := strconv.Atoi(lines[1])
+			if e != nil {
+				logrus.WithFields(logrus.Fields{
+					"line": line,
+				}).Warn("parser: Configuration line ignored [37]")
+				continue
+			}
+
+			o.ScriptSecurity = scriptSecurity
+			break
+		case "up":
+			if len(lines) != 2 {
+				logrus.WithFields(logrus.Fields{
+					"line": line,
+				}).Warn("parser: Configuration line ignored [38]")
+				continue
+			}
+
+			o.ScriptUp = lines[1]
+			break
+		case "down":
+			if len(lines) != 2 {
+				logrus.WithFields(logrus.Fields{
+					"line": line,
+				}).Warn("parser: Configuration line ignored [39]")
+				continue
+			}
+
+			o.ScriptDown = lines[1]
 			break
 		}
 	}

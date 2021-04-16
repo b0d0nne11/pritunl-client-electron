@@ -1330,7 +1330,7 @@ func (p *Profile) startOvpn(timeout bool) (err error) {
 
 	args := []string{
 		"--config", confPath,
-		"--verb", "2",
+		"--verb", "3",
 	}
 
 	if p.stop {
@@ -1355,13 +1355,6 @@ func (p *Profile) startOvpn(timeout bool) (err error) {
 		return
 	}
 
-	blockPath, e := p.writeBlock()
-	if e != nil {
-		err = e
-		return
-	}
-	p.remPaths = append(p.remPaths, blockPath)
-
 	if p.stop {
 		p.stopSafe()
 		return
@@ -1369,55 +1362,10 @@ func (p *Profile) startOvpn(timeout bool) (err error) {
 
 	switch runtime.GOOS {
 	case "windows":
-		args = append(args, "--script-security", "1")
 		break
 	case "darwin":
-		upPath, e := p.writeUp()
-		if e != nil {
-			err = e
-			return
-		}
-		p.remPaths = append(p.remPaths, upPath)
-
-		downPath, e := p.writeDown()
-		if e != nil {
-			err = e
-			return
-		}
-		p.remPaths = append(p.remPaths, downPath)
-
-		args = append(args, "--script-security", "2",
-			"--up", blockPath,
-			"--down", blockPath,
-			"--route-pre-down", downPath,
-			"--tls-verify", blockPath,
-			"--ipchange", blockPath,
-			"--route-up", upPath,
-		)
 		break
 	case "linux":
-		upPath, e := p.writeUp()
-		if e != nil {
-			err = e
-			return
-		}
-		p.remPaths = append(p.remPaths, upPath)
-
-		downPath, e := p.writeDown()
-		if e != nil {
-			err = e
-			return
-		}
-		p.remPaths = append(p.remPaths, downPath)
-
-		args = append(args, "--script-security", "2",
-			"--up", upPath,
-			"--down", downPath,
-			"--route-pre-down", blockPath,
-			"--tls-verify", blockPath,
-			"--ipchange", blockPath,
-			"--route-up", blockPath,
-		)
 		break
 	default:
 		panic("profile: Not implemented")
